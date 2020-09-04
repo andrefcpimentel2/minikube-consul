@@ -8,7 +8,7 @@ The objective of this repo is to display the possibilities of the different Cons
 
 The steps are based in the fantastic work done at https://learn.hashicorp.com/consul/kubernetes/mesh-gateways
 
-For more information, please visit https://www.consul.io/docs/connect/wan-federation-via-mesh-gateways
+For more information, please visit https://www.consul.io/docs/connect/gateways/wan-federation-via-mesh-gateways
 
 
 ## Requirements
@@ -19,7 +19,7 @@ I only tested this demo on macOS X with the Consul Enterprise version. There is 
 2. minikube
 3. helm3
 4. docker-compose
-5. Consul 1.8.0+ cli
+5. Consul 1.8.0+ cli installed on your machine
 6. an internet connection...
 
 ### Using Consul Enterprise
@@ -61,13 +61,13 @@ To start this demo, follow:
 ## Demos
 ### Mesh Gateways
 
+![Gateways](diagrams/gateways.png)
+
 #### Ingress
 The services accessible via each ingress gateway are the dashboard (in eahc cluster) and the webapp
 
 * https://dashboard-service.ingress.cluster-1.consul:30443
 * https://dashboard-service.ingress.cluster-2.consul:30443
-* https://webapp.ingress.consul:30080
-
 
 #### Federation/Mesh gateway
 At the end of `01_setup.sh` you can see all the URL to access the Consul UI and navigate between data centers.
@@ -81,21 +81,45 @@ If you access the dashboard on **cluster-2** - https://dashboard-service.ingress
 ### Layer 7
 
 #### Canary
-Access https://webapp.ingress.consul:30080/?x-debug so you will always get `webapp v2`
+![Canary](diagrams/canary.png)
+
+The above image means that https://webapp.ingress.consul:30080 will return `webapp - v1`
+Access https://webapp.ingress.consul:30080/?x-debug so you will always get `webapp - v2`
+
+##### Bonus
+
+You can also use the ingress gateway from *Cluster 2* to access the services that exist in *Cluster 1*
+
+![Canary in cluster 2](diagrams/canary-ingress.png)
+
+The endpoints are:
+ - https://webapp.ingress.cluster-2.consul:30080"
+ - https://webapp.ingress.cluster-2.consul:30080/?x-debug"
 
 #### Rollout
-Open the file `consul_config/webapp-splitter.hcl` and change the values to whatever you want.
+The rollout process is as follows:
 
-To apply the file run:
+![Canary](diagrams/splitter.png)
+
+1. Open the file `consul_config/webapp-splitter.hcl` and change the values to the percentages you want.
+
+2. To apply the file run:
 ```bash
 source helper.sh
 consul1 "config write" "consul_config/webapp-splitter.hcl"
 ```
 
+3. Keep refreshing https://webapp.ingress.consul:30080 to see the differences.
+
+4. Repeat with different values
+
+### Quick explanation of the Consul config
 #### Resolver
 
-*Service metadata* has been added to see the annotations in the files in `c1_manifests/counting-webapp-v1.yaml` and `c1_manifests/counting-webapp-v2.yaml`.
-This allows the filter in `consul_config/webapp-resolver.hcl` to work ad define 2 subsets.
+*Consul Service metadata* has been added to the annotations in the files in `c1_manifests/counting-webapp-v1.yaml` and `c1_manifests/counting-webapp-v2.yaml`.
+This allows the filter in `consul_config/webapp-resolver.hcl` to work and define 2 subsets.
+
+The *Failover* entry means that if the service is not found it should resolve to the `webapp` service in `cluster-1` datacenter, which enables the ingress gateway request in `cluster-2` to be routed to `cluster-1`
 
 #### Router
 

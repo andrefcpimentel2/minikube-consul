@@ -4,6 +4,10 @@ source helper.sh
 removehost dashboard-service.ingress.cluster-1.consul
 removehost dashboard-service.ingress.cluster-2.consul
 removehost webapp.ingress.consul
+removehost webapp.ingress.cluster-2.consul
+removehost webapp-1.ingress.consul
+removehost webapp-2.ingress.consul
+removehost webapp-3.ingress.consul
 
 # c1_kctx
 # kubectl delete -f k8s_manifests/
@@ -16,4 +20,4 @@ removehost webapp.ingress.consul
 
 minikube delete -p cluster-1
 minikube delete -p cluster-2
-docker-compose down
+docker-compose down -v
